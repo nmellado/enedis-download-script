@@ -5,11 +5,11 @@
 */
 
 // Période d'extraction en années - définir à 0 pour utiliser des dates spécifiques
-const ANNEES = 0
+const ANNEES = 1
 
 // Période d'extraction au format YYYY-MM-DD
-const DEBUT = '2025-01-01'
-const FIN = '2025-12-31'
+const DEBUT = '2024-01-04'
+const FIN = '2026-01-02'
 
 // Délai entre deux chargements (en secondes, peut être nécessaire de l'augmenter si la duree est très longue)
 const delai = 2
@@ -63,6 +63,8 @@ function parseDate(str) {
 function computePeriods(years, start_date, end_date) {
     const { DateTime } = luxon
 
+    const min = DateTime.now().minus({ years: 2 })
+    
     const end = years == 0
         ? DateTime.fromISO(end_date).endOf('day')
         : DateTime.now().endOf('day')
@@ -70,6 +72,11 @@ function computePeriods(years, start_date, end_date) {
     const start = years == 0
         ? DateTime.fromISO(start_date).startOf('day')
         : end.minus({ years }).startOf('day')
+
+    if (start < min) {
+        console.warn(`ENEDIS limite à 2 ans d'historique : la date de début sera le ${min.toISODate()}`)
+        start = min
+    }
 
     const periods = []
     for (let cur = start; cur < end; cur = cur.plus({ days: 7 })) {

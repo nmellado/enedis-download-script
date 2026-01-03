@@ -21,6 +21,8 @@ L'utilisation de ce script nécessite de coller du code dans la console de déve
 
 Par défaut le script effectue le téléchargement sur 1 an. Vous pouvez modifier cette durée aux lignes 7 à 13 du script.
 
+> **Attention :** ENEDIS ne permet pas de télécharger les données au delà de 2 ans d'historique.
+
 Le script va récupérer progressivement les données pour chaque semaine de la période, avec un délai entre chaque téléchargement (afin d'éviter de déclencher d'éventuelles mesures de protection côté ENEDIS), pour un total d'environ 3 minutes par année téléchargée, puis générer un fichier CSV qui sera automatiquement téléchargé par votre navigateur.
 
 ## Format des données
