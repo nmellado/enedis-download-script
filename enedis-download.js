@@ -69,7 +69,7 @@ function computePeriods(years, start_date, end_date) {
         ? DateTime.fromISO(end_date).endOf('day')
         : DateTime.now().endOf('day')
     
-    const start = years == 0
+    let start = years == 0
         ? DateTime.fromISO(start_date).startOf('day')
         : end.minus({ years }).startOf('day')
 
