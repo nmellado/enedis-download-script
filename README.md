@@ -16,6 +16,7 @@ L'utilisation de ce script nécessite de coller du code dans la console de déve
 
 * Connectez-vous au site ENEDIS et accédez à la page [Suivre ma consommation](https://mon-compte-particulier.enedis.fr/visualiser-vos-mesures-consommation)
 * Attendez le chargement complet de la page et l'affichage du graphique
+* **Même s'il est déjà sélectionné**, sélectionnez votre compteur en cliquant sur la liste déroulante en haut à droite de la page
 * Ouvrez la console de développement du navigateur (`F12`, `Ctrl+Maj+I` ou `Cmd+Option+I`)
 * Accédez à l'onglet "Console" puis collez le contenu du script et appuyez sur Entrée
 
