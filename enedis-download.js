@@ -122,7 +122,7 @@ async function getIdPersonne() {
     return idPersonne
 }
 
-// Télécharger un fichier de conso XLSX et renvoyer son contenu binaire sous forme d'un ArrayBuffer
+// Télécharger un fichier de conso XLSX et sauvegarder le fichier
 async function getFile(idPersonne, idPrm, start, end) {
     const apiRoot = 'https://alex.microapplications.enedis.fr/mes-mesures-prm/api/private/v2'
     const url = new URL(`${apiRoot}/personnes/${idPersonne}/prms/${idPrm}/donnees-energetiques/file`)
@@ -144,73 +144,27 @@ async function getFile(idPersonne, idPrm, start, end) {
     if (!req.ok) {
         throw new Error(`Échec de la récupération des données du ${start} au ${end}: HTTP ${req.status} / ${req.statusText}`)
     }
-
-    return req.arrayBuffer()
-}
-
-// Extraire les données de conso d'un binaire XLSX
-async function extractData(arrayBuffer) {
-    const parser = new DOMParser()
-    const zip = await JSZip.loadAsync(arrayBuffer)
-
-    // Extraction des chaines de caractères
-    const stringsXml = await zip.file('xl/sharedStrings.xml').async('string')
-    const stringsDoc = parser.parseFromString(stringsXml, 'application/xml')
-    const strings = [...stringsDoc.querySelectorAll('sst si')].map(si => si.textContent)
-
-    // Extraction des données - lignes contenant 3 cellules avec type "s"
-    const dataXml = await zip.file('xl/worksheets/sheet2.xml').async('string')
-    const dataDoc = parser.parseFromString(dataXml, 'application/xml')
-    const dataPoints = []
-
-    for (let row of dataDoc.querySelectorAll('row')) {
-        const cols = row.querySelectorAll('c[t=s]')
-        if (cols.length === 3) {
-            const [ debut, fin, conso ] = [...cols].map(c => strings[Number(c.querySelector('v').textContent)])
-            if (debut.match(dateRegex) && fin.match(dateRegex) && conso !== 'NA') {
-                dataPoints.push({
-                    debut: parseDate(debut),
-                    fin: parseDate(fin),
-                    conso: Number(conso.replace(',', '.'))
-                })
-            }
-        }
-    }
-
-    return dataPoints
-}
-
-// Construire le fichier CSV
-function buildCSV(data) {
-    const rows = [
-        'horodate;duree_h;puissance_kw'
-    ]
-
-    for (let { debut, fin, conso } of data) {
-        const debutIso = debut.toISO()
-        const finHeures = fin.diff(debut, 'hours').hours
-        
-        rows.push(`${debutIso};${finHeures};${conso}`)
-    }
     
-    return rows.join('\n')
+    // 2. Convert response to a Blob (Binary Large Object)
+    const blob = await req.blob();
+  
+    // 3. Create a temporary URL pointing to the object
+    const downloadUrl = window.URL.createObjectURL(blob);
+  
+    // 4. Create an invisible anchor element
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = `${start}.${end}.xlsx`; // Set the default saved filename
+  
+    // 5. Append, click, and remove the link
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  
+    // 6. Clean up the URL object to free up memory
+    window.URL.revokeObjectURL(downloadUrl);
 }
 
-// Télécharger le fichier CSV
-function downloadCSV(csv, idPrm, periodes) {
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `conso_enedis_${idPrm}_${periodes[0].start.toISODate()}_${periodes[periodes.length - 1].end.toISODate()}.csv`
-
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    
-    URL.revokeObjectURL(url)
-}
 
 async function getEnedisData(years, start, end, delay_seconds) {
     try {
@@ -240,7 +194,7 @@ async function getEnedisData(years, start, end, delay_seconds) {
             let file
 
             try {
-                file = await getFile(idPersonne, idPrm, s, e)
+                await getFile(idPersonne, idPrm, s, e)
                 retried = false;
             } catch(e) {
                 if (!retried) {
@@ -254,17 +208,8 @@ async function getEnedisData(years, start, end, delay_seconds) {
                 }
             }
 
-            const pdata = await extractData(file)
-
-            data.push(...pdata)
             await delay(delay_seconds * 1000);
         }
-
-        console.log('Construction du fichier CSV..')
-        const csv = buildCSV(data)
-
-        console.log('Téléchargement...')
-        downloadCSV(csv, idPrm, periodes)
 
         console.log('Opération terminée !')
     } catch (e) {
